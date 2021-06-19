@@ -657,13 +657,16 @@ void MPR121::applySettings(DeviceAddress device_address,
   write(device_address,NHDR_REGISTER_ADDRESS,settings.NHDR);
   write(device_address,NCLR_REGISTER_ADDRESS,settings.NCLR);
   write(device_address,FDLR_REGISTER_ADDRESS,settings.FDLR);
+
   write(device_address,MHDF_REGISTER_ADDRESS,settings.MHDF);
   write(device_address,NHDF_REGISTER_ADDRESS,settings.NHDF);
   write(device_address,NCLF_REGISTER_ADDRESS,settings.NCLF);
   write(device_address,FDLF_REGISTER_ADDRESS,settings.FDLF);
+
   write(device_address,NHDT_REGISTER_ADDRESS,settings.NHDT);
   write(device_address,NCLT_REGISTER_ADDRESS,settings.NCLT);
   write(device_address,FDLT_REGISTER_ADDRESS,settings.FDLT);
+
   write(device_address,MHDPROXR_REGISTER_ADDRESS,settings.MHDPROXR);
   write(device_address,NHDPROXR_REGISTER_ADDRESS,settings.NHDPROXR);
   write(device_address,NCLPROXR_REGISTER_ADDRESS,settings.NCLPROXR);
@@ -675,8 +678,13 @@ void MPR121::applySettings(DeviceAddress device_address,
   write(device_address,NHDPROXT_REGISTER_ADDRESS,settings.NHDPROXT);
   write(device_address,NCLPROXT_REGISTER_ADDRESS,settings.NCLPROXT);
   write(device_address,FDLPROXT_REGISTER_ADDRESS,settings.FDLPROXT);
+
   write(device_address,DEBOUNCE_REGISTER_ADDRESS,settings.DEBOUNCE);
+
+  write(device_address,AFE1_REGISTER_ADDRESS,settings.AFE1);
+  write(device_address,AFE2_REGISTER_ADDRESS,settings.AFE2);
   write(device_address,ECR_REGISTER_ADDRESS,settings.ECR);
+
   write(device_address,ACCR0_REGISTER_ADDRESS,settings.ACCR0);
   write(device_address,ACCR1_REGISTER_ADDRESS,settings.ACCR1);
   write(device_address,USL_REGISTER_ADDRESS,settings.USL);
@@ -691,4 +699,85 @@ void MPR121::applySettings(DeviceAddress device_address,
 void MPR121::clearOverCurrentFlag(DeviceAddress device_address)
 {
   write(device_address,TOUCH_STATUS_REGISTER_ADDRESS,OVER_CURRENT_REXT);
+}
+
+void MPR121::setupGPIO(DeviceAddress device_address, uint8_t gpio_num, GPIOConfiguration config) {
+  uint8_t ctl0;
+  uint8_t ctl1;
+  uint8_t dir;
+  uint8_t en;
+  read(device_address, CTL0_REGISTER_ADDRESS, ctl0);
+  read(device_address, CTL1_REGISTER_ADDRESS, ctl1);
+  read(device_address, DIR_REGISTER_ADDRESS, dir);
+  read(device_address, EN_REGISTER_ADDRESS, en);
+  switch(config) {
+    case MPR121::GPIOConfiguration::GPIO_DISABLED:
+      en ^= (-(unsigned long) 0 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_INPUT:
+      ctl0 ^= (-(unsigned long) 0 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 0 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 0 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_INPUT_PULLDOWN:
+      ctl0 ^= (-(unsigned long) 1 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 0 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 0 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_INPUT_PULLUP:
+      ctl0 ^= (-(unsigned long) 1 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 1 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 0 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_OUTPUT:
+      ctl0 ^= (-(unsigned long) 0 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 0 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 1 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_OUTPUT_OPEN_DRAIN_LED:
+      ctl0 ^= (-(unsigned long) 1 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 1 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 1 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    case MPR121::GPIOConfiguration::GPIO_OUTPUT_OPEN_DRAIN:
+      ctl0 ^= (-(unsigned long) 1 ^ ctl0) & (1UL << gpio_num);
+      ctl1 ^= (-(unsigned long) 0 ^ ctl1) & (1UL << gpio_num);
+      dir ^= (-(unsigned long) 1 ^ dir) & (1UL << gpio_num);
+      en ^= (-(unsigned long) 1 ^ en) & (1UL << gpio_num);
+      break;
+    default:
+      break;
+  }
+  write(device_address, CTL0_REGISTER_ADDRESS, ctl0);
+  write(device_address, CTL1_REGISTER_ADDRESS, ctl1);
+  write(device_address, DIR_REGISTER_ADDRESS, dir);
+  write(device_address, EN_REGISTER_ADDRESS, en);
+}
+
+bool MPR121::digitalRead(DeviceAddress device_address, uint8_t gpio_num) {
+  uint8_t dat;
+  read(device_address, DAT_REGISTER_ADDRESS, dat);
+  return ((dat >> gpio_num) & 1U) == 1;
+}
+
+void MPR121::digitalWrite(DeviceAddress device_address, uint8_t gpio_num, bool value) {
+  int x = 0x0;
+  if (value) {
+    x ^= (-(unsigned long) 1 ^ x) & (1UL << gpio_num);
+    write(device_address, SET_REGISTER_ADDRESS, x);
+  } else {
+    x ^= (-(unsigned long) 1 ^ x) & (1UL << gpio_num);
+    write(device_address, CLR_REGISTER_ADDRESS, x);
+  }
+}
+
+void MPR121::toggle(DeviceAddress device_address, uint8_t gpio_num) {
+  int x = 0x0;
+  x ^= (-(unsigned long) 1 ^ x) & (1UL << gpio_num);
+  write(device_address, TOG_REGISTER_ADDRESS, x);
 }

@@ -9,7 +9,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-
 class MPR121
 {
 public:
@@ -113,7 +112,7 @@ public:
   enum BaselineTracking
     {
      BASELINE_TRACKING_INIT_0 = 0x00, // default
-     BASELINE_TRACKING_DISABLED = 0x01,
+     BASELINE_TRACKING_PROXIMITY_MODE_DISABLED = 0x01,
      BASELINE_TRACKING_INIT_5BIT = 0x02,
      BASELINE_TRACKING_INIT_10BIT = 0x03,
     };
@@ -132,7 +131,7 @@ public:
     uint8_t charge_discharge_current);
   enum ChargeDischargeTime
     {
-     CHARGE_DISCHARGE_TIME_DISABLED = 0x00,
+     CHARGE_DISCHARGE_TIME_PROXIMITY_MODE_DISABLED = 0x00,
      CHARGE_DISCHARGE_TIME_HALF_US = 0x01, // default
      CHARGE_DISCHARGE_TIME_1US = 0x02,
      CHARGE_DISCHARGE_TIME_2US = 0x03,
@@ -182,6 +181,20 @@ public:
     };
   void setSamplePeriod(DeviceAddress device_address,
     SamplePeriod sample_period);
+
+  enum GPIOConfiguration {
+    GPIO_DISABLED,
+    GPIO_INPUT,
+    GPIO_INPUT_PULLDOWN,
+    GPIO_INPUT_PULLUP,
+    GPIO_OUTPUT,
+    GPIO_OUTPUT_OPEN_DRAIN_LED,
+    GPIO_OUTPUT_OPEN_DRAIN
+  };
+  void setupGPIO(DeviceAddress device_address, uint8_t gpio_num, GPIOConfiguration config);
+  bool digitalRead(DeviceAddress device_address, uint8_t gpio_num);
+  void digitalWrite(DeviceAddress device_address, uint8_t gpio_num, bool value);
+  void toggle(DeviceAddress device_address, uint8_t gpio_num);
 
 private:
   uint8_t device_count_;
@@ -337,11 +350,11 @@ private:
   const static uint8_t TOG_REGISTER_ADDRESS = 0x7A;
 
   // auto-config
-  const static uint8_t ACCR0_REGISTER_ADDRESS = 0x7B;
-  const static uint8_t ACCR1_REGISTER_ADDRESS = 0x7C;
-  const static uint8_t USL_REGISTER_ADDRESS = 0x7D;
-  const static uint8_t LSL_REGISTER_ADDRESS = 0x7E;
-  const static uint8_t TL_REGISTER_ADDRESS = 0x7F;
+  const static uint8_t ACCR0_REGISTER_ADDRESS = 0x7B; // Auto config control register 0
+  const static uint8_t ACCR1_REGISTER_ADDRESS = 0x7C; // Auto config control register 1
+  const static uint8_t USL_REGISTER_ADDRESS = 0x7D; // Upper side limit register
+  const static uint8_t LSL_REGISTER_ADDRESS = 0x7E; // Lower side limit register
+  const static uint8_t TL_REGISTER_ADDRESS = 0x7F; // Target level register
 
   // soft reset
   const static uint8_t SRST_REGISTER_ADDRESS = 0x80;
@@ -397,6 +410,10 @@ private:
     // debounce settings
     uint8_t DEBOUNCE;
 
+    // AFE configuration register
+    uint8_t AFE1; // AFE configuration 1 register
+    uint8_t AFE2; // AFE configuration 2 register
+
     // configuration registers
     uint8_t ECR;
 
@@ -407,21 +424,73 @@ private:
     uint8_t LSL;
     uint8_t TL;
 
-    // default values in initialisation list
+  //   // default values in initialisation list
+  //   Settings():
+  //     touch_threshold(40),
+  //     release_threshold(20),
+
+  //     MHDR(0x01),
+  //     NHDR(0x01),
+  //     NCLR(0x10),
+  //     FDLR(0x20),
+
+  //     MHDF(0x01),
+  //     NHDF(0x01),
+  //     NCLF(0x10),
+  //     FDLF(0x20),
+
+  //     NHDT(0x01),
+  //     NCLT(0x10),
+  //     FDLT(0xFF),
+
+  //     MHDPROXR(0x0F),
+  //     NHDPROXR(0x0F),
+  //     NCLPROXR(0x00),
+  //     FDLPROXR(0x00),
+  //     MHDPROXF(0x01),
+  //     NHDPROXF(0x01),
+  //     NCLPROXF(0xFF),
+  //     FDLPROXF(0xFF),
+  //     NHDPROXT(0x00),
+  //     NCLPROXT(0x00),
+  //     FDLPROXT(0x00),
+
+  //     DEBOUNCE(0x11),
+
+  //     ECR(0xC0), // default to fast baseline startup, no electrodes enabled, no proximity
+  //     //ECR(0x00), // baseline tracking enabled, no electrodes enabled, no proximity
+
+  //     ACCR0(0x00),
+  //     ACCR1(0x00),
+  //     USL(0x00),
+  //     LSL(0x00),
+  //     TL(0x00)
+  //   {};
+  // };
+
+  // MPR121 design guideline suggested values for auto-configration
     Settings():
-      touch_threshold(40),
-      release_threshold(20),
+      touch_threshold(5),
+      release_threshold(4),
+
+      // Touch pad basline fillter rising: quick rising
       MHDR(0x01),
       NHDR(0x01),
-      NCLR(0x10),
-      FDLR(0x20),
+      NCLR(0x00),
+      FDLR(0x00),
+      
+      // Baseline falling
       MHDF(0x01),
       NHDF(0x01),
-      NCLF(0x10),
-      FDLF(0x20),
-      NHDT(0x01),
-      NCLT(0x10),
-      FDLT(0xFF),
+      NCLF(0xFF), // Amount of values to consider to register as non-noise
+      FDLF(0x00), // Filter delay
+
+      // Touched: baseline keep
+      NHDT(0x00),
+      NCLT(0x00),
+      FDLT(0x00),
+
+      // Proximity baseline filter
       MHDPROXR(0x0F),
       NHDPROXR(0x0F),
       NCLPROXR(0x00),
@@ -433,13 +502,23 @@ private:
       NHDPROXT(0x00),
       NCLPROXT(0x00),
       FDLPROXT(0x00),
-      DEBOUNCE(0x11),
-      ECR(0xC0), // default to fast baseline startup, no electrodes enabled, no proximity
-      ACCR0(0x00),
-      ACCR1(0x00),
-      USL(0x00),
-      LSL(0x00),
-      TL(0x00)
+
+      // Touch and release interrupt debounce
+      DEBOUNCE(0x00), // Not used for polling method, effective for INT mode 
+
+      // AFE and filter configuration
+      AFE1(0x10),
+      AFE2(0x24),
+
+      //ECR(0xC0), // default to fast baseline startup, no electrodes enabled, no proximity
+      //ECR(0x00), // baseline tracking enabled, no electrodes enabled, no proximity
+      ECR(0x80), // Baseline calibration enabled, basline loading 5MSB
+
+      ACCR0(0x0B), // AFES=6 samples, same as AFES in 0x5C
+      ACCR1(0x80),
+      USL(0xC8), // AC up limit /C8/BD/C0/9C
+      LSL(0x82), // AC low limit /82/7A/7C/65
+      TL(0xB4) // AC target /B4/AA/AC/8C for /3.0V/2.8V/1.8V
     {};
   };
   const Settings default_settings_;
