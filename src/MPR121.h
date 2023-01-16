@@ -195,6 +195,7 @@ public:
   bool digitalRead(DeviceAddress device_address, uint8_t gpio_num);
   void digitalWrite(DeviceAddress device_address, uint8_t gpio_num, bool value);
   void toggle(DeviceAddress device_address, uint8_t gpio_num);
+  void setPWM(DeviceAddress device_address, uint8_t gpio_num, uint8_t value);
 
 private:
   uint8_t device_count_;
@@ -361,10 +362,17 @@ private:
   const static uint8_t SRST_REGISTER_VALUE = 0x63;
 
   // PWM
-  const static uint8_t PWM0 = 0x81;
-  const static uint8_t PWM1 = 0x82;
-  const static uint8_t PWM2 = 0x83;
-  const static uint8_t PWM3 = 0x84;
+  const static uint8_t PWM0_REGISTER_ADDRESS = 0x81;
+  const static uint8_t PWM1_REGISTER_ADDRESS = 0x82;
+  const static uint8_t PWM2_REGISTER_ADDRESS = 0x83;
+  const static uint8_t PWM3_REGISTER_ADDRESS = 0x84;
+  union PWMDutyControl {
+    struct Fields {
+      uint8_t first : 4;
+      uint8_t second : 4;
+    } fields;
+    uint8_t uint8;
+  };
 
   struct Settings
   {
@@ -470,20 +478,20 @@ private:
 
   // MPR121 design guideline suggested values for auto-configration
     Settings():
-      touch_threshold(5),
-      release_threshold(4),
+      touch_threshold(20),
+      release_threshold(15),
 
       // Touch pad basline fillter rising: quick rising
       MHDR(0x01),
       NHDR(0x01),
-      NCLR(0x00),
+      NCLR(0x20),
       FDLR(0x00),
       
       // Baseline falling
       MHDF(0x01),
       NHDF(0x01),
       NCLF(0xFF), // Amount of values to consider to register as non-noise
-      FDLF(0x00), // Filter delay
+      FDLF(0x20), // Filter delay
 
       // Touched: baseline keep
       NHDT(0x00),

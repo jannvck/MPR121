@@ -702,14 +702,13 @@ void MPR121::clearOverCurrentFlag(DeviceAddress device_address)
 }
 
 void MPR121::setupGPIO(DeviceAddress device_address, uint8_t gpio_num, GPIOConfiguration config) {
-  uint8_t ctl0;
-  uint8_t ctl1;
-  uint8_t dir;
-  uint8_t en;
+  uint8_t ctl0, ctl1, dir, en;
+
   read(device_address, CTL0_REGISTER_ADDRESS, ctl0);
   read(device_address, CTL1_REGISTER_ADDRESS, ctl1);
   read(device_address, DIR_REGISTER_ADDRESS, dir);
   read(device_address, EN_REGISTER_ADDRESS, en);
+
   switch(config) {
     case MPR121::GPIOConfiguration::GPIO_DISABLED:
       en ^= (-(unsigned long) 0 ^ en) & (1UL << gpio_num);
@@ -753,6 +752,7 @@ void MPR121::setupGPIO(DeviceAddress device_address, uint8_t gpio_num, GPIOConfi
     default:
       break;
   }
+
   write(device_address, CTL0_REGISTER_ADDRESS, ctl0);
   write(device_address, CTL1_REGISTER_ADDRESS, ctl1);
   write(device_address, DIR_REGISTER_ADDRESS, dir);
@@ -780,4 +780,53 @@ void MPR121::toggle(DeviceAddress device_address, uint8_t gpio_num) {
   int x = 0x0;
   x ^= (-(unsigned long) 1 ^ x) & (1UL << gpio_num);
   write(device_address, TOG_REGISTER_ADDRESS, x);
+}
+
+void MPR121::setPWM(DeviceAddress device_address, uint8_t gpio_num, uint8_t value) {
+  PWMDutyControl pwm;
+
+  switch(gpio_num) {
+    case 0:
+      read(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
+      pwm.first = value;
+      write(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 1:
+      read(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
+      pwm.second = value;
+      write(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 2:
+      read(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
+      pwm.first = value;
+      write(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 3:
+      read(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
+      pwm.second = value;
+      write(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 4:
+      read(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
+      pwm.first = value;
+      write(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 5:
+      read(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
+      pwm.second = value;
+      write(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 6:
+      read(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
+      pwm.first = value;
+      write(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    case 7:
+      read(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
+      pwm.second = value;
+      write(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
+      break;
+    default:
+      break;
+  }
 }
