@@ -788,42 +788,42 @@ void MPR121::setPWM(DeviceAddress device_address, uint8_t gpio_num, uint8_t valu
   switch(gpio_num) {
     case 0:
       read(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
-      pwm.first = value;
+      pwm.fields.first = value;
       write(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 1:
       read(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
-      pwm.second = value;
+      pwm.fields.second = value;
       write(device_address, PWM0_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 2:
       read(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
-      pwm.first = value;
+      pwm.fields.first = value;
       write(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 3:
       read(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
-      pwm.second = value;
+      pwm.fields.second = value;
       write(device_address, PWM1_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 4:
       read(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
-      pwm.first = value;
+      pwm.fields.first = value;
       write(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 5:
       read(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
-      pwm.second = value;
+      pwm.fields.second = value;
       write(device_address, PWM2_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 6:
       read(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
-      pwm.first = value;
+      pwm.fields.first = value;
       write(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
       break;
     case 7:
       read(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
-      pwm.second = value;
+      pwm.fields.second = value;
       write(device_address, PWM3_REGISTER_ADDRESS, pwm.uint8);
       break;
     default:
